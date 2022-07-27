@@ -1,20 +1,48 @@
-name: 'Hello World'
-description: 'Greet the world and record the time'
-author: 'Test Corporation'
-inputs: 
-  greeting: # id of input
-    description: 'The greeting we choose - will print ""{greeting}, World!"" on stdout'
-    required: true
-    default: 'Hello'
-    deprecationMessage: 'This property has been deprecated'
-  entryPoint: # id of input
-    description: 'optional docker entrypoint overwrite.'
-    required: false
+name: 'Conditional Composite'
+description: 'Test composite run step conditionals'
+inputs:
+  exit-code:
+    description: 'Action fails if set to non-zero'
+    default: '0'
 outputs:
-  time: # id of output
-    description: 'The time we did the greeting'
-icon: 'hello.svg' # vector art to display in the GitHub Marketplace
-color: 'green' # optional, decorates the entry in the GitHub Marketplace
+  default:
+    description: "Did step run with default?"
+    value: ${{ steps.default-conditional.outputs.default }}
+  success:
+    description: "Did step run with success?"
+    value: ${{ steps.success-conditional.outputs.success }}
+  failure:
+    description: "Did step run with failure?"
+    value: ${{ steps.failure-conditional.outputs.failure }}
+  always:
+    description: "Did step run with always?"
+    value: ${{ steps.always-conditional.outputs.always }}
+
 runs:
-  using: 'node16'
-  main: 'main.js'
+    using: "composite"
+    steps:
+      - run: exit ${{ inputs.exit-code }}
+        shell: bash
+
+      - run: echo "::set-output name=default::true"
+        id: default-conditional
+        shell: bash
+
+      - run: echo "::set-output name=success::true"
+        id: success-conditional
+        shell: bash
+        if: success()
+
+      - run: echo "::set-output name=failure::true"
+        id: failure-conditional
+        shell: bash
+        if: failure()
+
+      - run: echo "::set-output name=always::true"
+        id: always-conditional
+        shell: bash
+        if: always()
+
+      - run: echo "failed"
+        shell: bash
+        if: ${{ inputs.exit-code == 1 && failure() }}
